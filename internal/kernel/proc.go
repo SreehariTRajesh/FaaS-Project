@@ -24,9 +24,13 @@ type ProcRuntimeMonitor struct {
 type ProcEvent = procProcEventT
 
 func NewProcRuntimeMonitor(outputFilePath string) (*ProcRuntimeMonitor, error) {
-
+	loadOpts := &ebpf.CollectionOptions{
+		Maps: ebpf.MapOptions{
+			PinPath: "/sys/fs/bpf/proc", // Pin directory
+		},
+	}
 	objs := &procObjects{}
-	if err := loadProcObjects(objs, nil); err != nil {
+	if err := loadProcObjects(objs, loadOpts); err != nil {
 		return nil, fmt.Errorf("failed to load BPF objects: %w", err)
 	}
 
@@ -38,15 +42,42 @@ func NewProcRuntimeMonitor(outputFilePath string) (*ProcRuntimeMonitor, error) {
 
 	outputFileWriter := csv.NewWriter(outputFile)
 
-	outputFileWriter.Write([]string{
-		"cgroup_id",
-		"pid",
-		"start_timestamp",
-		"end_timestamp",
-		"latency",
-	})
+	outputFileInfo, err := os.Stat(outputFilePath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to stat output file: %w", err)
+	}
 
-	outputFileWriter.Flush()
+	if outputFileInfo.Size() == 0 {
+		outputFileWriter.Write([]string{
+			"cgroup_id",
+			"pid",
+			"start_timestamp",
+			"end_timestamp",
+			"latency",
+			"cycles",
+			"instructions",
+			"ref_cycles",
+			"cache_references",
+			"cache_misses",
+			"branches",
+			"branch_misses",
+			"l1d_loads",
+			"l1d_stores",
+			"llc_loads",
+			"llc_load_misses",
+			"llc_stores",
+			"llc_store_misses",
+			"dtlb_loads",
+			"dtlb_load_misses",
+			"dtlb_stores",
+			"dtlb_store_misses",
+			"bpu_loads",
+			"bpu_load_misses",
+			"energy_uj",
+		})
+		outputFileWriter.Flush()
+	}
+
 	return &ProcRuntimeMonitor{
 		links:            make([]link.Link, 0),
 		outputFileWriter: outputFileWriter,
@@ -82,31 +113,50 @@ func (p *ProcRuntimeMonitor) Attach() error {
 	return nil
 }
 
-func (p *ProcRuntimeMonitor) ReadEvents() error {
-	for {
-		record, err := p.reader.Read()
-		if err != nil {
-			if errors.Is(err, ringbuf.ErrClosed) {
-				return nil
-			}
-			return fmt.Errorf("reading from ringbuf: %w", err)
+func (p *ProcRuntimeMonitor) ReadEvents(done chan struct{}) error {
+	record, err := p.reader.Read()
+	if err != nil {
+		if errors.Is(err, ringbuf.ErrClosed) {
+			return nil
 		}
-		var event ProcEvent
-
-		if err := binary.Read(bytes.NewReader(record.RawSample), binary.LittleEndian, &event); err != nil {
-			return fmt.Errorf("failed to parse event: %v", err)
-		}
-
-		p.outputFileWriter.Write([]string{
-			strconv.FormatUint(uint64(event.CgroupId), 10),
-			strconv.FormatUint(uint64(event.Latency), 10),
-			strconv.FormatUint(uint64(event.Pid), 10),
-			strconv.FormatUint(uint64(event.StartTimestamp), 10),
-			strconv.FormatUint(uint64(event.EndTimestamp), 10),
-		})
-
-		p.outputFileWriter.Flush()
+		return fmt.Errorf("reading from ringbuf: %w", err)
 	}
+	var event ProcEvent
+
+	if err := binary.Read(bytes.NewReader(record.RawSample), binary.LittleEndian, &event); err != nil {
+		return fmt.Errorf("failed to parse event: %v", err)
+	}
+
+	p.outputFileWriter.Write([]string{
+		strconv.FormatUint(uint64(event.CgroupId), 10),
+		strconv.FormatUint(uint64(event.Latency), 10),
+		strconv.FormatUint(uint64(event.Pid), 10),
+		strconv.FormatUint(uint64(event.StartTimestamp), 10),
+		strconv.FormatUint(uint64(event.EndTimestamp), 10),
+		strconv.FormatUint(event.HwStats.Cycles, 10),
+		strconv.FormatUint(event.HwStats.Instructions, 10),
+		strconv.FormatUint(event.HwStats.RefCycles, 10),
+		strconv.FormatUint(event.HwStats.CacheReferences, 10),
+		strconv.FormatUint(event.HwStats.CacheMisses, 10),
+		strconv.FormatUint(event.HwStats.Branches, 10),
+		strconv.FormatUint(event.HwStats.BranchMisses, 10),
+		strconv.FormatUint(event.HwStats.L1dLoads, 10),
+		strconv.FormatUint(event.HwStats.L1dStores, 10),
+		strconv.FormatUint(event.HwStats.LlcLoads, 10),
+		strconv.FormatUint(event.HwStats.LlcLoadMisses, 10),
+		strconv.FormatUint(event.HwStats.LlcStores, 10),
+		strconv.FormatUint(event.HwStats.LlcStoreMisses, 10),
+		strconv.FormatUint(event.HwStats.DtlbLoads, 10),
+		strconv.FormatUint(event.HwStats.DtlbLoadMisses, 10),
+		strconv.FormatUint(event.HwStats.DtlbStores, 10),
+		strconv.FormatUint(event.HwStats.DtlbStoreMisses, 10),
+		strconv.FormatUint(event.HwStats.BpuLoads, 10),
+		strconv.FormatUint(event.HwStats.BpuLoadMisses, 10),
+	})
+
+	p.outputFileWriter.Flush()
+	close(done)
+	return nil
 }
 
 func (p *ProcRuntimeMonitor) UpdateContainerCgroupId(cgroupId uint32) error {

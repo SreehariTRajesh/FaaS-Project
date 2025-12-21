@@ -13,6 +13,29 @@ import (
 	"github.com/cilium/ebpf"
 )
 
+type procPerfStats struct {
+	_               structs.HostLayout
+	Cycles          uint64
+	Instructions    uint64
+	RefCycles       uint64
+	CacheReferences uint64
+	CacheMisses     uint64
+	Branches        uint64
+	BranchMisses    uint64
+	L1dLoads        uint64
+	L1dStores       uint64
+	LlcLoads        uint64
+	LlcLoadMisses   uint64
+	LlcStores       uint64
+	LlcStoreMisses  uint64
+	DtlbLoads       uint64
+	DtlbLoadMisses  uint64
+	DtlbStores      uint64
+	DtlbStoreMisses uint64
+	BpuLoads        uint64
+	BpuLoadMisses   uint64
+}
+
 type procProcEventT struct {
 	_              structs.HostLayout
 	Pid            uint32
@@ -20,6 +43,7 @@ type procProcEventT struct {
 	StartTimestamp uint64
 	EndTimestamp   uint64
 	Latency        uint64
+	HwStats        procPerfStats
 }
 
 // loadProc returns the embedded CollectionSpec for proc.
@@ -73,6 +97,7 @@ type procProgramSpecs struct {
 // It can be passed ebpf.CollectionSpec.Assign.
 type procMapSpecs struct {
 	Events              *ebpf.MapSpec `ebpf:"events"`
+	ProcStatsMap        *ebpf.MapSpec `ebpf:"proc_stats_map"`
 	ProcessContainerMap *ebpf.MapSpec `ebpf:"process_container_map"`
 	ProcessMonitorMap   *ebpf.MapSpec `ebpf:"process_monitor_map"`
 }
@@ -104,6 +129,7 @@ func (o *procObjects) Close() error {
 // It can be passed to loadProcObjects or ebpf.CollectionSpec.LoadAndAssign.
 type procMaps struct {
 	Events              *ebpf.Map `ebpf:"events"`
+	ProcStatsMap        *ebpf.Map `ebpf:"proc_stats_map"`
 	ProcessContainerMap *ebpf.Map `ebpf:"process_container_map"`
 	ProcessMonitorMap   *ebpf.Map `ebpf:"process_monitor_map"`
 }
@@ -111,6 +137,7 @@ type procMaps struct {
 func (m *procMaps) Close() error {
 	return _ProcClose(
 		m.Events,
+		m.ProcStatsMap,
 		m.ProcessContainerMap,
 		m.ProcessMonitorMap,
 	)

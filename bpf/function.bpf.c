@@ -2,10 +2,11 @@
 #include <bpf/bpf_helpers.h>
 #include <bpf/bpf_tracing.h>
 
+
 struct
 {
     __uint(type, BPF_MAP_TYPE_RINGBUF);
-    __uint(max_entries, 256 * 1024);
+    __uint(max_entries, 1024 * 1024);
 } function_events SEC(".maps");
 
 struct
@@ -15,7 +16,6 @@ struct
     __type(key, __u64); // Use u64 to capture full PID+TID
     __type(value, __u64);
 } start_times SEC(".maps");
-
 
 struct run_event
 {
@@ -59,7 +59,6 @@ int uprobe_exit(struct pt_regs *ctx)
     }
 
     bpf_map_delete_elem(&start_times, &id);
-    bpf_printk("Function Exit: PID %d, Latency %lld ns", pid, duration);
     return 0;
 }
 

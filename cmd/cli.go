@@ -12,17 +12,17 @@ func main() {
 	currCPUFreqPtr := flag.Uint64("curr-cpu-freq", 1000000, "Old CPU frequency for migration (e.g., 1000000).")
 	memoryPtr := flag.String("memory", "512M", "Memory limit for the cgroup (e.g., '512M').")
 	benchmarkFile := flag.String("benchmark-file", "", "Path to the benchmark")
-	functionName := flag.String("function-name", "", "path to the function")
-	latencyOutputFilePtr := flag.String("latency-output-file", "benchmark-latency.csv", "Output file for latency metrics.")
+	procOutputFilePtr := flag.String("proc-output-file", "proc-bench.csv", "Output file for proc metrics.")
+	hardwareOutputFilePtr := flag.String("hardware-output-file", "hw-bench.csv", "Output file for hardware metrics.")
 	flag.Parse()
 
-	runner, err := benchmarks.NewFunctionBenchmarkRunner(*cgroupPtr, *latencyOutputFilePtr)
+	runner, err := benchmarks.NewProcBenchmarkRunner(*cgroupPtr, *procOutputFilePtr, *hardwareOutputFilePtr)
 
 	if err != nil {
 		log.Fatalf("error initializing proc benchmark runner: %v", err)
 	}
 
-	err = runner.RunFuncBenchmark(*benchmarkFile, *functionName, *cpusetPtr, *memoryPtr, *currCPUFreqPtr)
+	err = runner.RunProcBenchmark(*benchmarkFile, *cpusetPtr, *memoryPtr, *currCPUFreqPtr)
 
 	/*
 			runner, err := container.NewBenchmarkRunner(*cgroupPtr, *latencyOutputFilePtr, *cacheStatsOutputFilePtr)

@@ -1,0 +1,1 @@
+cycles,instructions,ref_cycles,cache_references,cache_misses,branches,branch_misses,l1d_loads,l1d_stores,llc_loads,llc_load_misses,llc_stores,llc_store_misses,dtlb_loads,dtlb_load_misses,dtlb_stores,dtlb_store_misses,bpu_loads,bpu_load_misses,energy_uj

@@ -51,25 +51,32 @@ func NewLLCMetricsMonitor(outputFilePath string) (*LLCMetricsMonitor, error) {
 
 	outputFileWriter := csv.NewWriter(outputFile)
 
-	outputFileWriter.Write([]string{
-		"cgroup_id",
-		"pid",
-		"cpu",
-		"read_hits",
-		"read_misses",
-		"read_references",
-		"write_hits",
-		"write_misses",
-		"write_references",
-		"prefetch_hits",
-		"prefetch_misses",
-		"prefetch_references",
-		"total_hits",
-		"total_misses",
-		"total_references",
-	})
+	outputFileInfo, err := os.Stat(outputFilePath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to stat output file: %w", err)
+	}
 
-	outputFileWriter.Flush()
+	if outputFileInfo.Size() == 0 {
+		outputFileWriter.Write([]string{
+			"cgroup_id",
+			"pid",
+			"cpu",
+			"read_hits",
+			"read_misses",
+			"read_references",
+			"write_hits",
+			"write_misses",
+			"write_references",
+			"prefetch_hits",
+			"prefetch_misses",
+			"prefetch_references",
+			"total_hits",
+			"total_misses",
+			"total_references",
+		})
+
+		outputFileWriter.Flush()
+	}
 	return &LLCMetricsMonitor{
 		links:            make([]link.Link, 0),
 		outputFileWriter: outputFileWriter, // Placeholder

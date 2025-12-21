@@ -25,9 +25,15 @@ type HardwareMetricsMonitor struct {
 }
 
 func NewHardwareMetricsMonitor(outputFilePath string) (*HardwareMetricsMonitor, error) {
+	loadOpts := &ebpf.CollectionOptions{
+		Maps: ebpf.MapOptions{
+			PinPath: "/sys/fs/bpf/proc", // Pin directory
+		},
+	}
+
 	objs := &hardwareObjects{}
 
-	if err := loadHardwareObjects(objs, nil); err != nil {
+	if err := loadHardwareObjects(objs, loadOpts); err != nil {
 		return nil, fmt.Errorf("error while loading hardware objects: %w", err)
 	}
 
@@ -39,35 +45,49 @@ func NewHardwareMetricsMonitor(outputFilePath string) (*HardwareMetricsMonitor, 
 
 	outputFileWriter := csv.NewWriter(outputFile)
 
-	outputFileWriter.Write([]string{
-		"cycles",
-		"instructions",
-		"ref_cycles",
-		"cache_references",
-		"cache_misses",
-		"branches",
-		"branch_misses",
-		"l1d_loads",
-		"l1d_stores",
-		"llc_loads",
-		"llc_load_misses",
-		"llc_stores",
-		"llc_store_misses",
-		"dtlb_loads",
-		"dtlb_load_misses",
-		"dtlb_stores",
-		"dtlb_store_misses",
-		"bpu_loads",
-		"bpu_load_misses",
-		"energy_uj",
-	})
+	outputFileInfo, err := os.Stat(outputFilePath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to stat output file: %w", err)
+	}
 
-	outputFileWriter.Flush()
+	if outputFileInfo.Size() == 0 {
+		outputFileWriter.Write([]string{
+			"cycles",
+			"instructions",
+			"ref_cycles",
+			"cache_references",
+			"cache_misses",
+			"branches",
+			"branch_misses",
+			"l1d_loads",
+			"l1d_stores",
+			"llc_loads",
+			"llc_load_misses",
+			"llc_stores",
+			"llc_store_misses",
+			"dtlb_loads",
+			"dtlb_load_misses",
+			"dtlb_stores",
+			"dtlb_store_misses",
+			"bpu_loads",
+			"bpu_load_misses",
+			"energy_uj",
+		})
+		outputFileWriter.Flush()
+	}
 	return &HardwareMetricsMonitor{
 		links:            make([]link.Link, 0),
 		outputFileWriter: outputFileWriter, // Placeholder
 		objs:             objs,             // Placeholder
 	}, nil
+}
+
+func (h *HardwareMetricsMonitor) UpdateContainerCgroupId(cgroupId uint32) error {
+	err := h.objs.ProcStatsMap.Update(cgroupId, &hardwarePerfStats{}, ebpf.UpdateAny)
+	if err != nil {
+		return fmt.Errorf("error while updating cgroup id: %v", err)
+	}
+	return nil
 }
 
 func (h *HardwareMetricsMonitor) AttachHardwareEvents() error {
@@ -290,14 +310,14 @@ func (h *HardwareMetricsMonitor) ReadStats(interval time.Duration) error {
 	// 2. Read Stats
 	go func() {
 		defer wg.Done()
-		statsErr = h.objs.hardwareMaps.Stats.Lookup(&statsKey, &prevStats)
+		statsErr = h.objs.hardwareMaps.ProcStatsMap.Lookup(&statsKey, &prevStats)
 	}()
 
 	// Wait for both to finish
 	wg.Wait()
 
 	// Initial Reads
-	if err := h.objs.hardwareMaps.Stats.Lookup(&prevKey, &prevStats); err != nil {
+	if err := h.objs.hardwareMaps.ProcStatsMap.Lookup(&prevKey, &prevStats); err != nil {
 		return fmt.Errorf("error reading initial stats: %w", err)
 	}
 	prevEnergy, err := energy.ReadRAPLEnergyUJ()
@@ -325,7 +345,7 @@ func (h *HardwareMetricsMonitor) ReadStats(interval time.Duration) error {
 			// 2. Read Stats
 			go func() {
 				defer wg.Done()
-				statsErr = h.objs.hardwareMaps.Stats.Lookup(&statsKey, &currStats)
+				statsErr = h.objs.hardwareMaps.ProcStatsMap.Lookup(&statsKey, &currStats)
 			}()
 
 			// Wait for both to finish
@@ -382,7 +402,7 @@ func (h *HardwareMetricsMonitor) ReadStats(interval time.Duration) error {
 }
 
 func (h *HardwareMetricsMonitor) InitializeStats() error {
-	err := h.objs.hardwareMaps.Stats.Update(0, hardwarePerfStats{
+	err := h.objs.hardwareMaps.ProcStatsMap.Update(0, hardwarePerfStats{
 		Cycles:          0,
 		Instructions:    0,
 		CacheMisses:     0,

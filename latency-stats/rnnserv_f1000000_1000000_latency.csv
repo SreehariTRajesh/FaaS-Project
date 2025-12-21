@@ -1,3 +1,0 @@
-cgroup_id,latency,pid,source_cpu,target_cpu
-cgroup_id,latency,pid,source_cpu,target_cpu
-17049,35130219732,9210,0,1

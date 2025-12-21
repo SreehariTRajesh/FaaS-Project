@@ -44,16 +44,22 @@ func NewLatencyMetricsMonitor(outputFilePath string) (*LatencyMetricsMonitor, er
 
 	outputFileWriter := csv.NewWriter(outputFile)
 
-	outputFileWriter.Write([]string{
-		"cgroup_id",
-		"latency",
-		"pid",
-		"source_cpu",
-		"target_cpu",
-	})
+	outputFileInfo, err := os.Stat(outputFilePath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to stat output file: %w", err)
+	}
 
-	outputFileWriter.Flush()
+	if outputFileInfo.Size() == 0 {
+		outputFileWriter.Write([]string{
+			"cgroup_id",
+			"latency",
+			"pid",
+			"source_cpu",
+			"target_cpu",
+		})
 
+		outputFileWriter.Flush()
+	}
 	return &LatencyMetricsMonitor{
 		objs:             objs,
 		links:            make([]link.Link, 0),

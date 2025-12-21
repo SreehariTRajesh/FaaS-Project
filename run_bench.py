@@ -7,12 +7,23 @@ import sys
 
 
 # The number of times to run the command
-NUM_RUNS = 25
+NUM_RUNS = 100
 
 # --- Helper Function to Execute Command ---
 benchmarks = [
-    #"compression",
-    #"graphproc",
+    "cnnserv",
+    "imagepr",
+    "linpack",
+    "lrserv",
+    "mlinf",
+    "rnnserv",
+    "thumbnail",
+    "videoproc",
+    "vidpr",
+    "webserv",
+    "wordcnt",
+    "compression",
+    "graphproc",
     "thumbnail",
 ]
 
@@ -54,8 +65,10 @@ def run_command(bench, run_number, freqKHz):
         "256M",
         f"-benchmark-file",
         f"serverless-benchmarks/{bench}.py",
-        f"-latency-output-file",
-        f"{bench}{freqKHz}khz.csv",
+        f"-proc-output-file",
+        f"process/{bench}_{freqKHz}khz.csv",
+        f"-hardware-output-file",
+        f"hardware/{bench}_{freqKHz}khz.csv",
     ]
     """
     Executes the command and handles the output.

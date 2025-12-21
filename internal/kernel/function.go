@@ -45,13 +45,19 @@ func NewFunctionMetricsMonitor(outputFilePath string) (*FunctionMetricsMonitor, 
 
 	outputFileWriter := csv.NewWriter(outputFile)
 
-	outputFileWriter.Write([]string{
-		"pid",
-		"duration",
-	})
+	outputFileInfo, err := os.Stat(outputFilePath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to stat output file: %w", err)
+	}
 
-	outputFileWriter.Flush()
+	if outputFileInfo.Size() == 0 {
+		outputFileWriter.Write([]string{
+			"pid",
+			"duration",
+		})
 
+		outputFileWriter.Flush()
+	}
 	return &FunctionMetricsMonitor{
 		outputFileWriter: outputFileWriter,
 		objs:             objs,

@@ -44,7 +44,7 @@ func NewClone3Executor(cgroupPath string) (*Clone3Executor, error) {
 	}, nil
 }
 
-func (e *Clone3Executor) CloneIntoCgroup(binary string) uint32 {
+func (e *Clone3Executor) CloneIntoCgroup(pythonScript string) uint32 {
 	cloneArgs := &CloneArgs{
 		Flags:      syscall.CLONE_INTO_CGROUP,
 		ExitSignal: uint64(syscall.SIGCHLD),
@@ -59,11 +59,11 @@ func (e *Clone3Executor) CloneIntoCgroup(binary string) uint32 {
 	}
 
 	if pid == 0 {
-		argv := []string{binary} // Use the path as the first argument
+		argv := []string{"python3", pythonScript} // Use the path as the first argument
 
 		// syscall.Exec REPLACES the current process with python3
 		// This process ID remains the same, but the code becomes Python.
-		err := syscall.Exec(binary, argv, os.Environ())
+		err := syscall.Exec("/usr/bin/python3", argv, os.Environ())
 
 		// This code runs ONLY if Exec fails
 		if err != nil {
