@@ -83,7 +83,7 @@ func NewHardwareMetricsMonitor(outputFilePath string) (*HardwareMetricsMonitor, 
 }
 
 func (h *HardwareMetricsMonitor) UpdateContainerCgroupId(cgroupId uint32) error {
-	err := h.objs.ProcStatsMap.Update(cgroupId, &hardwarePerfStats{}, ebpf.UpdateNoExist)
+	err := h.objs.ProcStatsMap.Update(cgroupId, &hardwarePerfStats{}, ebpf.UpdateAny)
 	if err != nil {
 		return fmt.Errorf("error while updating cgroup id: %v", err)
 	}

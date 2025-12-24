@@ -7,7 +7,7 @@ import sys
 
 
 # The number of times to run the command
-NUM_RUNS = 100
+NUM_RUNS = 25
 
 # --- Helper Function to Execute Command ---
 benchmarks = [

@@ -164,7 +164,7 @@ func (p *ProcRuntimeMonitor) ReadEvents(done chan struct{}) error {
 }
 
 func (p *ProcRuntimeMonitor) UpdateContainerCgroupId(cgroupId uint32) error {
-	err := p.objs.ProcessContainerMap.Update(cgroupId, true, ebpf.UpdateNoExist)
+	err := p.objs.ProcessContainerMap.Update(cgroupId, true, ebpf.UpdateAny)
 	if err != nil {
 		return fmt.Errorf("error while updating cgroup id: %v", err)
 	}
