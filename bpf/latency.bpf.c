@@ -146,15 +146,7 @@ int raw_tp_sched_switch(struct bpf_raw_tracepoint_args *ctx)
         // 1. Calculate latency
         event->timestamp_end = end_time;
         event->latency = event->timestamp_end - event->timestamp_start;
-
-        // 2. Print output using correct format specifiers (%llu for __u64)
-        bpf_printk("Migration Latency: %llu ns, PID:%d, CGroup:%llu, CPU:%d -> %d",
-                   event->latency,
-                   event->pid,
-                   event->cgroup_id,
-                   event->source_cpu,
-                   event->target_cpu);
-
+        
         struct migration_event_t *rb_event;
         rb_event = bpf_ringbuf_reserve(&events, sizeof(*rb_event), 0);
 
