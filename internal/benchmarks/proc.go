@@ -101,11 +101,13 @@ func (p *ProcBenchmarkRunner) RunProcBenchmark(pythonScript string, currCPUSet s
 
 	err = p.procMonitor.UpdateContainerCgroupId(cgId)
 	if err != nil {
+		fmt.Println("Hello World")
 		return err
 	}
 
 	err = p.hwMonitor.UpdateContainerCgroupId(cgId)
 	if err != nil {
+		fmt.Println("Hello World1")
 		return err
 	}
 
