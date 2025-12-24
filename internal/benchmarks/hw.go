@@ -27,6 +27,11 @@ func (h *HardwareBenchmarkRunner) RunBenchmark() error {
 	}
 	log.Println("successfully attached hardware perf events")
 
+	err = h.hw.InitializeStats()
+	if err != nil {
+		return fmt.Errorf("error while initializing stats: %w", err)
+	}
+
 	err = h.hw.ReadStats(10)
 
 	if err != nil {

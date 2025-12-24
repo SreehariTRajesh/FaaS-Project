@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"encoding/csv"
 	"errors"
+	"faas-migration/internal/energy"
 	"fmt"
 	"os"
 	"strconv"
@@ -19,6 +20,7 @@ type ProcRuntimeMonitor struct {
 	objs             *procObjects
 	links            []link.Link
 	reader           *ringbuf.Reader
+	msrManager       *energy.MSRManager
 }
 
 type ProcEvent = procProcEventT
@@ -39,6 +41,8 @@ func NewProcRuntimeMonitor(outputFilePath string) (*ProcRuntimeMonitor, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to open output file: %w", err)
 	}
+
+	msrManager := energy.NewMSRManager()
 
 	outputFileWriter := csv.NewWriter(outputFile)
 
@@ -73,7 +77,6 @@ func NewProcRuntimeMonitor(outputFilePath string) (*ProcRuntimeMonitor, error) {
 			"dtlb_store_misses",
 			"bpu_loads",
 			"bpu_load_misses",
-			"energy_uj",
 		})
 		outputFileWriter.Flush()
 	}
@@ -82,6 +85,7 @@ func NewProcRuntimeMonitor(outputFilePath string) (*ProcRuntimeMonitor, error) {
 		links:            make([]link.Link, 0),
 		outputFileWriter: outputFileWriter,
 		objs:             objs,
+		msrManager:       msrManager,
 	}, nil
 }
 
@@ -162,7 +166,7 @@ func (p *ProcRuntimeMonitor) ReadEvents(done chan struct{}) error {
 func (p *ProcRuntimeMonitor) UpdateContainerCgroupId(cgroupId uint32) error {
 	err := p.objs.ProcessContainerMap.Update(cgroupId, true, ebpf.UpdateNoExist)
 	if err != nil {
-		return fmt.Errorf("error whiel updating cgroup id: %v", err)
+		return fmt.Errorf("error while updating cgroup id: %v", err)
 	}
 	return nil
 }

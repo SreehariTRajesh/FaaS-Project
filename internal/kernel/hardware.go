@@ -402,13 +402,7 @@ func (h *HardwareMetricsMonitor) ReadStats(interval time.Duration) error {
 }
 
 func (h *HardwareMetricsMonitor) InitializeStats() error {
-	err := h.objs.hardwareMaps.ProcStatsMap.Update(0, hardwarePerfStats{
-		Cycles:          0,
-		Instructions:    0,
-		CacheMisses:     0,
-		CacheReferences: 0,
-		BranchMisses:    0,
-	}, ebpf.UpdateNoExist)
+	err := h.objs.hardwareMaps.ProcStatsMap.Update(uint32(0), hardwarePerfStats{}, ebpf.UpdateNoExist)
 
 	if err != nil {
 		return fmt.Errorf("error while initializing stats: %w", err)

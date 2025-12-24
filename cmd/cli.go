@@ -15,12 +15,23 @@ func main() {
 	procOutputFilePtr := flag.String("proc-output-file", "proc-bench.csv", "Output file for proc metrics.")
 	hardwareOutputFilePtr := flag.String("hardware-output-file", "hw-bench.csv", "Output file for hardware metrics.")
 	flag.Parse()
-
 	runner, err := benchmarks.NewProcBenchmarkRunner(*cgroupPtr, *procOutputFilePtr, *hardwareOutputFilePtr)
 
+	//if err != nil {
+	//	log.Fatalf("error initializing proc benchmark runner: %v", err)
+	//}
+
+	// runner, err := benchmarks.NewHardwarBenchmarkRunner("hw.csv")
+	//
 	if err != nil {
-		log.Fatalf("error initializing proc benchmark runner: %v", err)
+		log.Fatalln("Error initializing hardware benchmark: %w", err)
 	}
+	/*
+		err = runner.RunBenchmark()
+		if err != nil {
+			log.Fatalln("Error while running hardware benchmark: %w", err)
+		}
+	*/
 
 	err = runner.RunProcBenchmark(*benchmarkFile, *cpusetPtr, *memoryPtr, *currCPUFreqPtr)
 
@@ -35,16 +46,7 @@ func main() {
 			log.Fatalf("Error running benchmark: %v", err)
 		}
 
-			runner, err := benchmarks.NewHardwarBenchmarkRunner("hw.csv")
 
-			if err != nil {
-				log.Fatalln("Error initializing hardware benchmark: %w", err)
-			}
-
-			err = runner.RunBenchmark()
-			if err != nil {
-				log.Fatalln("Error while running hardware benchmark: %w", err)
-			}
 	*/
 	if err != nil {
 		log.Fatalf("error running proc benchmark: %v", err)

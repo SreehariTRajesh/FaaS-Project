@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-const coreEnergyPath = "/sys/class/powercap/intel-rapl:0:0/energy_uj"
+const coreEnergyPath = "/sys/class/powercap/intel-rapl:0/energy_uj"
 
 func ReadRAPLEnergyUJ() (uint64, error) {
 	data, err := os.ReadFile(coreEnergyPath)

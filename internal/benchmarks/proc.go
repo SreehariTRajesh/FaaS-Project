@@ -1,21 +1,26 @@
 package benchmarks
 
 import (
+	"encoding/csv"
 	"faas-migration/internal/container"
 	"faas-migration/internal/cpu"
+	"faas-migration/internal/energy"
 	"faas-migration/internal/kernel"
 	"fmt"
 	"log"
+	"os"
 	"strconv"
 )
 
 type ProcBenchmarkRunner struct {
 	// Add fields if necessary
-	cgroupManager *container.CgroupManager
-	clone3Exec    *container.Clone3Executor
-	frequencyMgr  *cpu.CPUFrequencyManager
-	procMonitor   *kernel.ProcRuntimeMonitor
-	hwMonitor     *kernel.HardwareMetricsMonitor
+	cgroupManager    *container.CgroupManager
+	clone3Exec       *container.Clone3Executor
+	frequencyMgr     *cpu.CPUFrequencyManager
+	procMonitor      *kernel.ProcRuntimeMonitor
+	hwMonitor        *kernel.HardwareMetricsMonitor
+	msrManager       *energy.MSRManager
+	outputFileWriter *csv.Writer
 }
 
 func NewProcBenchmarkRunner(
@@ -52,12 +57,21 @@ func NewProcBenchmarkRunner(
 		return nil, fmt.Errorf("error while initializing hardware metrics monitor: %v", err)
 	}
 
+	outputFile, err := os.OpenFile(procOutputFile, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to open output file: %w", err)
+	}
+
+	outputFileWriter := csv.NewWriter(outputFile)
+
 	return &ProcBenchmarkRunner{
-		cgroupManager: cgroupManager,
-		clone3Exec:    clone3Exec,
-		frequencyMgr:  cpuFreqManager,
-		procMonitor:   procMonitor,
-		hwMonitor:     hwMonitor,
+		cgroupManager:    cgroupManager,
+		clone3Exec:       clone3Exec,
+		frequencyMgr:     cpuFreqManager,
+		procMonitor:      procMonitor,
+		hwMonitor:        hwMonitor,
+		outputFileWriter: outputFileWriter,
 	}, nil
 }
 
@@ -97,12 +111,33 @@ func (p *ProcBenchmarkRunner) RunProcBenchmark(pythonScript string, currCPUSet s
 
 	doneChannel := make(chan struct{})
 
+	currEnergy1, err := p.msrManager.ReadCPUCoreEnergy(currCPU)
+
+	if err != nil {
+		return fmt.Errorf("error while reading current energy: %v", err)
+	}
+
 	p.clone3Exec.CloneIntoCgroup(pythonScript)
 
 	err = p.procMonitor.ReadEvents(doneChannel)
 	if err != nil {
 		return fmt.Errorf("error while reading events from ringbuffer: %v\n", err)
 	}
+
+	<-doneChannel
+
+	currEnergy2, err := p.msrManager.ReadCPUCoreEnergy(currCPU)
+	if err != nil {
+		return fmt.Errorf("error while reading cpu core energy: %v\n", err)
+	}
+
+	energyDiff := currEnergy2 - currEnergy1
+
+	p.outputFileWriter.Write([]string{
+		strconv.FormatUint(energyDiff, 10),
+	})
+
+	p.outputFileWriter.Flush()
 
 	return nil
 }

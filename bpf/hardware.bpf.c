@@ -124,6 +124,7 @@ int on_branches(struct bpf_perf_event_data *ctx)
 SEC("perf_event")
 int on_branch_misses(struct bpf_perf_event_data *ctx)
 {
+
     __u32 stats_key = bpf_get_current_cgroup_id();
     struct perf_stats *s = bpf_map_lookup_elem(&proc_stats_map, &stats_key);
     if (!s)
@@ -196,6 +197,7 @@ int on_llc_loads(struct bpf_perf_event_data *ctx)
 SEC("perf_event")
 int on_llc_load_misses(struct bpf_perf_event_data *ctx)
 {
+
     __u32 stats_key = bpf_get_current_cgroup_id();
     struct perf_stats *s = bpf_map_lookup_elem(&proc_stats_map, &stats_key);
     if (!s)
@@ -210,6 +212,7 @@ int on_llc_load_misses(struct bpf_perf_event_data *ctx)
 SEC("perf_event")
 int on_llc_stores(struct bpf_perf_event_data *ctx)
 {
+
     __u32 stats_key = bpf_get_current_cgroup_id();
     struct perf_stats *s = bpf_map_lookup_elem(&proc_stats_map, &stats_key);
     if (!s)
@@ -224,6 +227,7 @@ int on_llc_stores(struct bpf_perf_event_data *ctx)
 SEC("perf_event")
 int on_llc_store_misses(struct bpf_perf_event_data *ctx)
 {
+
     __u32 stats_key = bpf_get_current_cgroup_id();
     struct perf_stats *s = bpf_map_lookup_elem(&proc_stats_map, &stats_key);
     if (!s)
